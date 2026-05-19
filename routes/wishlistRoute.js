@@ -1,19 +1,17 @@
 const express = require('express');
-
 const authService = require('../services/authService');
 
 const {
-  addProductToWishlist,
-  removeProductFromWishlist,
-  getLoggedUserWishlist,
+  getMyWishlist,
+  addToWishlist,
+  removeFromWishlist,
 } = require('../services/wishlistService');
 
 const router = express.Router();
 
-router.use(authService.protect, authService.allowedTo('user'));
+router.use(authService.protect, authService.allowedTo('student'));
 
-router.route('/').post(addProductToWishlist).get(getLoggedUserWishlist);
-
-router.delete('/:productId', removeProductFromWishlist);
+router.route('/').get(getMyWishlist).post(addToWishlist);
+router.delete('/:courseId', removeFromWishlist);
 
 module.exports = router;

@@ -1,41 +1,33 @@
 const mongoose = require('mongoose');
-// 1- Create Schema
+
 const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: [true, 'Category required'],
       unique: [true, 'Category must be unique'],
-      minlength: [3, 'Too short category name'],
-      maxlength: [32, 'Too long category name'],
+      minlength: [2, 'Too short category name'],
+      maxlength: [64, 'Too long category name'],
     },
-    // A and B => shopping.com/a-and-b
-    slug: {
-      type: String,
-      lowercase: true,
-    },
+    slug: { type: String, lowercase: true },
+    description: String,
     image: String,
+    icon: String,
+    parent: { type: mongoose.Schema.ObjectId, ref: 'Category', default: null },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    coursesCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
 const setImageURL = (doc) => {
-  if (doc.image) {
-    const imageUrl = `${process.env.BASE_URL}/categories/${doc.image}`;
-    doc.image = imageUrl;
+  if (doc.image && !doc.image.startsWith('http')) {
+    doc.image = `${process.env.BASE_URL}/categories/${doc.image}`;
   }
 };
-// findOne, findAll and update
-categorySchema.post('init', (doc) => {
-  setImageURL(doc);
-});
 
-// create
-categorySchema.post('save', (doc) => {
-  setImageURL(doc);
-});
+categorySchema.post('init', (doc) => setImageURL(doc));
+categorySchema.post('save', (doc) => setImageURL(doc));
 
-// 2- Create model
-const CategoryModel = mongoose.model('Category', categorySchema);
-
-module.exports = CategoryModel;
+module.exports = mongoose.model('Category', categorySchema);

@@ -19,19 +19,14 @@ const {
 
 const authService = require('../services/authService');
 
-const subcategoriesRoute = require('./subCategoryRoute');
-
 const router = express.Router();
-
-// Nested route
-router.use('/:categoryId/subcategories', subcategoriesRoute);
 
 router
   .route('/')
   .get(getCategories)
   .post(
     authService.protect,
-    authService.allowedTo('admin', 'manager'),
+    authService.allowedTo('admin'),
     uploadCategoryImage,
     resizeImage,
     createCategoryValidator,
@@ -42,7 +37,7 @@ router
   .get(getCategoryValidator, getCategory)
   .put(
     authService.protect,
-    authService.allowedTo('admin', 'manager'),
+    authService.allowedTo('admin'),
     uploadCategoryImage,
     resizeImage,
     updateCategoryValidator,

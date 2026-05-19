@@ -11,19 +11,17 @@ exports.createCategoryValidator = [
   check('name')
     .notEmpty()
     .withMessage('Category required')
-    .isLength({ min: 3 })
-    .withMessage('Too short category name')
-    .isLength({ max: 32 })
-    .withMessage('Too long category name')
+    .isLength({ min: 2, max: 64 })
     .custom((val, { req }) => {
       req.body.slug = slugify(val);
       return true;
     }),
+  check('parent').optional().isMongoId(),
   validatorMiddleware,
 ];
 
 exports.updateCategoryValidator = [
-  check('id').isMongoId().withMessage('Invalid category id format'),
+  check('id').isMongoId(),
   body('name')
     .optional()
     .custom((val, { req }) => {
@@ -34,6 +32,6 @@ exports.updateCategoryValidator = [
 ];
 
 exports.deleteCategoryValidator = [
-  check('id').isMongoId().withMessage('Invalid category id format'),
+  check('id').isMongoId(),
   validatorMiddleware,
 ];

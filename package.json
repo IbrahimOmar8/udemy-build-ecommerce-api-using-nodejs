@@ -1,13 +1,23 @@
 {
-  "name": "nodejs-ecommerce-api-v1",
+  "name": "elearning-platform-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Educational platform backend API. Instructors create courses, sections, lectures, quizzes, and assignments. Students enroll, learn, and receive certificates.",
+  "main": "server.js",
   "scripts": {
+    "start": "NODE_ENV=production node server.js",
     "start:dev": "nodemon server.js",
-    "start": "NODE_ENV=production node server.js"
+    "test": "echo \"No tests configured yet\" && exit 0",
+    "lint": "eslint ."
   },
-  "keywords": [],
+  "keywords": [
+    "elearning",
+    "lms",
+    "courses",
+    "education",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -44,6 +54,6 @@
     "prettier": "^2.5.1"
   },
   "engines": {
-    "node": "^16.13.0"
+    "node": "^16.13.0 || >=18"
   }
 }

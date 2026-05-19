@@ -1,100 +1,324 @@
-# Course Material and FAQ for my NodeJS - Build a Full E-Commerce RESTful APIs (بالعربي) 
+# E-Learning Platform API
 
-This repo contains every course section in a single branch  and the finished project files for all the projects contained in the master branch
+A full-featured REST API for an online learning platform built with Node.js, Express, and MongoDB. Instructors create and manage courses (sections, lectures, videos, quizzes, assignments), students enroll, track progress, take exams, complete activities, and earn certificates.
 
-Choose the section branch that you study, and **final code to compare it with your own code whenever something doesn't work**!
+This repository hosts the **Backend** of the platform. Two companion frontends are planned (see Roadmap below):
+- Web frontend (Next.js)
+- Mobile app (React Native + Expo)
 
-## Join To Discord Channel For Updates [discord](https://discord.gg/e2nwBNU2q9) 
+---
 
+## Features
 
-👇 **_Please read the following Frequently Asked Questions (FAQ) carefully before starting the course_** 👇
+### Authentication & Users
+- Self-registration as `student` or `instructor`, admin-managed admin accounts
+- Email + password login with bcrypt
+- Access token + refresh token (multi-device sessions)
+- Forgot password / reset password / email verification flows
+- Profile management with image upload (Sharp resizing)
 
-## FAQ
+### Instructors
+- Public instructor profiles (`/api/v1/instructors`, `/api/v1/instructors/:id`)
+- Editable instructor profile (`headline`, `bio`, `expertise`, social links)
+- Dashboard with aggregated stats: total courses, students, revenue, ratings
+- Earnings breakdown by month
+- Student management across all owned courses
+- Admin approval workflow for new instructors
 
-### Q1: How do I download the files?
+### Courses
+- Full CRUD with rich metadata (title, subtitle, description, level, language, tags, learning outcomes, requirements, audience, SEO)
+- Thumbnail + promo video upload
+- Lifecycle: `draft` → `pending_review` → `published` / `rejected` / `archived`
+- Status-aware listing (drafts hidden from non-owners)
+- Search by keyword, filter by category/level/price, pagination, sort
 
-**A:** If you're new to GitHub and just want to download the entire code, hit the green button saying "Code", and then choose the "Download ZIP" option.
+### Curriculum
+- **Sections**: ordered grouping of lectures
+- **Lectures**: type = `video` | `article` | `quiz` | `assignment`
+  - Video upload (multipart, size limit configurable)
+  - Multiple attachments per lecture (PDF, ZIP, docs, ...)
+  - Preview lectures (no enrollment required)
+  - Captions, duration tracking
+- Drag-and-drop reordering endpoints for both sections and lectures
 
+### Enrollments & Progress
+- Free enrollment + paid enrollment via Stripe Checkout
+- Per-lecture completion tracking with auto progress %
+- Resume where you left off (`lastLecture`)
+- Course completion → certificate generation
 
-### Q2: I'm stuck in one of the projects. Where do I get help?
+### Quizzes & Exams
+- Multiple-choice (single / multi-select), true/false, text answers
+- Per-question points, passing score, time limit, max attempts
+- Attempt records with auto-grading and review
 
-**A:** Have you actually tried to fix the problem on your own? Have you compared your code to the final code? If you failed fixing your problem, please **post a detailed description of the problem to the Q&A area of that video over at Udemy**, along with a [codepen](https://codepen.io/pen/) containing your code. You will get help there. Please don't send me a personal message or email to fix coding problems.
+### Assignments
+- File-based + text submissions
+- Due dates with late-submission policy
+- Instructor grading with score + feedback
+- Return-for-revision workflow
 
+### Certificates
+- Auto-generated upon 100% course completion
+- Unique serial number, SVG output (PDF generation can be plugged in)
+- Public verification endpoint by serial
 
-### Q3: I want to put the project in my portfolio. Is that allowed?
+### Q&A / Discussion
+- Questions tied to course (optionally to a lecture)
+- Threaded answers with instructor flag
+- Upvote questions, resolve flag
 
-**A:** Absolutely! Just make sure you actually built it yourself by following the course, and that you understand what you did. What is **not allowed** is that you create your own course/videos/articles based on this course's content!
+### Notes
+- Student notes pinned to lecture timestamps
 
+### Notifications
+- In-app notifications with type, read/unread state, unread count
 
-### Q4: Do you accept pull requests?
+### Cart / Wishlist / Coupons / Payments
+- Cart with multi-course checkout
+- Wishlist (favorites)
+- Coupons: percent or fixed discount, course-specific or global, max uses, expiry
+- Stripe Checkout integration + webhook for fulfillment
+- Free checkout when coupon brings total to zero
+- Payment history per user
 
-**A:** No, for the simple reason that I want this repository to contain the _exact_ same code that is shown in the videos. However, please feel free to add an issue if you found one.
+### Reviews
+- 1-5 star ratings with title + comment
+- Only enrolled students can review
+- Auto-aggregated `ratingsAverage` and `ratingsQuantity` on the course
 
+### Infrastructure
+- Pluggable storage abstraction (`utils/storage`) — currently `local`, can be swapped to S3 / Cloudinary without touching service code
+- Centralized error handling with `ApiError`
+- API features helper (filter, sort, search, paginate, field limiting)
+- Rate limiting, HPP protection, CORS, compression
+- Health check at `/api/v1/health`
 
-## Course Highlights
+---
 
-1- Project Overview
+## Tech Stack
 
-خلال هذا القسم هيتم استعراض مشروع المتجر الإلكتروني اللي هيتم تنفيذه خلال هذا الكورس ... مهم جدا تتفرج عليه بتركيز عشان تكون عارف ايه المميزات اللي هتتنفذ خلال المشروع ده 
+- **Runtime**: Node.js 16+ (Node 18 supported)
+- **Framework**: Express 4
+- **DB**: MongoDB via Mongoose 6
+- **Auth**: JWT (access + refresh)
+- **Validation**: express-validator
+- **Uploads**: multer + sharp
+- **Payments**: Stripe
+- **Email**: nodemailer
 
-2- How Web Work
+---
 
-خلال القسم ده هنتكلم شويه عن اساسيات النتورك وازاي الويب بيشتغل عشان كله يكون عنده الاساسيات اللي هنبني عليها اللي جاي وفي نفس الوقت نكون عارف احنا مكانا فين بالظبط وايه دورنا واحنا بنكتب كود
+## Project Structure
 
-3- Preparing Tools And Environment
+```
+.
+├── config/
+│   └── database.js
+├── middlewares/
+│   ├── errorMiddleware.js
+│   ├── uploadImageMiddleware.js
+│   ├── uploadVideoMiddleware.js
+│   ├── uploadFileMiddleware.js
+│   └── validatorMiddleware.js
+├── models/
+│   ├── userModel.js
+│   ├── categoryModel.js
+│   ├── courseModel.js
+│   ├── sectionModel.js
+│   ├── lectureModel.js
+│   ├── enrollmentModel.js
+│   ├── quizModel.js
+│   ├── quizAttemptModel.js
+│   ├── assignmentModel.js
+│   ├── submissionModel.js
+│   ├── certificateModel.js
+│   ├── qnaModel.js
+│   ├── noteModel.js
+│   ├── notificationModel.js
+│   ├── cartModel.js
+│   ├── couponModel.js
+│   ├── paymentModel.js
+│   └── reviewModel.js
+├── routes/
+│   ├── index.js
+│   ├── authRoute.js
+│   ├── userRoute.js
+│   ├── categoryRoute.js
+│   ├── courseRoute.js
+│   ├── sectionRoute.js / sectionGlobalRoute.js
+│   ├── lectureRoute.js / lectureGlobalRoute.js
+│   ├── enrollmentRoute.js / myEnrollmentRoute.js
+│   ├── quizRoute.js
+│   ├── assignmentRoute.js
+│   ├── certificateRoute.js
+│   ├── qnaRoute.js / qnaGlobalRoute.js
+│   ├── notificationRoute.js
+│   ├── instructorRoute.js
+│   ├── reviewRoute.js
+│   ├── cartRoute.js
+│   ├── wishlistRoute.js
+│   ├── couponRoute.js
+│   ├── paymentRoute.js
+│   ├── noteRoute.js / noteGlobalRoute.js
+├── services/
+│   ├── authService.js
+│   ├── userService.js
+│   ├── categoryService.js
+│   ├── courseService.js
+│   ├── sectionService.js
+│   ├── lectureService.js
+│   ├── enrollmentService.js
+│   ├── quizService.js
+│   ├── assignmentService.js
+│   ├── certificateService.js
+│   ├── qnaService.js
+│   ├── notificationService.js
+│   ├── instructorService.js
+│   ├── reviewService.js
+│   ├── cartService.js
+│   ├── wishlistService.js
+│   ├── couponService.js
+│   ├── paymentService.js
+│   ├── noteService.js
+│   └── handlersFactory.js
+├── utils/
+│   ├── apiError.js
+│   ├── apiFeatures.js
+│   ├── createToken.js
+│   ├── sendEmail.js
+│   ├── certificateGenerator.js
+│   └── storage/
+│       ├── index.js
+│       └── localProvider.js
+├── uploads/        (gitignored runtime media)
+├── server.js
+└── package.json
+```
 
-خلال القسم ده هنبدأ نجهز بيئة العمل بتاعتنا والمحرر اللي هنبدأ نشتغل عليه
+---
 
-4- Preparing Express Server And Mongodb
+## Setup
 
-خلال القسم ده هنبدأ نجهز الاكسبريس اب بتاعنا ونبدأ ننشأ السيرفر ونربط التطبيق بتاعنا بالداتا بيز وكمان هنشرح الستراكشر بتاع الملفات اللي هنشتغل بيه خلال المشروع اللي هننفذه
+### Prerequisites
+- Node.js 16+ (or 18+)
+- MongoDB 5+
+- (Optional) Stripe account for paid courses
+- (Optional) SMTP credentials for email
 
-5- Categories CRUD Operations
+### Installation
 
-خلال القسم ده هنبدأ التنفيذ الفعل لفيتشر الاقسام داخل المتجر الالكتروني الاقسام دي ممكن تكون ملابس او الكترونيات ..إلى آخره.
+```bash
+npm install
+```
 
-6- Advanced Error Handling & Adding Validation Layer
+### Environment
 
-من السكاشن المهمة جدا اللي هنشرح فيها ازاي اكسبريس بيتعامل مع الايرورز وهنبدأ نشوف ازاي نمسك الايرورز دي ونتحكم في شكلها والشكل النهائي اللي هيرجع للمستخدم وكمان هنشوف ازاي نمسك باقي الايرورز اللي ممكن تحصل في باقي التطبيق غير اكسبريس
+Create a `config.env` file in the project root:
 
-7- SubCategories CRUD & Brands CRUD Operations
+```env
+PORT=8000
+NODE_ENV=development
+BASE_URL=http://localhost:8000
 
-خلال القسم ده هنبدأ ننفذ الاقسام الفرعية اللي هتكون بتنتمي للاقسام الرئيسية بمعني ان القسم الرئيسي ينتمي ليه قسم او اكثر فرعي .. بالاضافه للعمل علي فيشتر البراندات
+DB_URI=mongodb://127.0.0.1:27017/elearning
 
-8- Products CRUD Operations
+JWT_SECRET_KEY=replace-me-with-long-random-string
+JWT_EXPIRE_TIME=15m
+JWT_REFRESH_SECRET_KEY=replace-me-with-another-long-random-string
+JWT_REFRESH_EXPIRE_TIME=30d
 
-خلال القسم ده هنبدأ نشتغل علي فيتشر المنتج وهنشوف ازاي نعمل انشاء وتعديل وحذف للمنتج .. بالاضافة ازاي نعمل بحث وازاي نعمل ترتيب للمنتج سواء بسعره او عدد المبيعات للمنتج او غيره .. ازاي كمان نعمل فلتر للمنتج سواء بالقسم اللي بينتمي ليه واو العلامة التجارية وغيره
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=
+EMAIL_PASSWORD=
 
-9- Upload Single And Multiple Images And Image Processing
+# Storage
+STORAGE_PROVIDER=local
+MAX_VIDEO_SIZE_MB=500
+MAX_FILE_SIZE_MB=50
 
-خلال القسم ده هنشوف ازاي نعمل رفع لصوره واحدة او اكتر من صورة .. وهنشوف ازاي نحسن من العمليات اللي هتم علي الصورة عشان يحسن من الاداء .. وهنتعامل مع الايرورز اللي ممكن تظهرك لما ترفع فايل غير الصور .. وهنبدأ نضيف الصور للمنتج بتاعنا
+# Payments
+STRIPE_SECRET=
+STRIPE_WEBHOOK_SECRET=
+FRONTEND_URL=http://localhost:3000
 
-10- Authentication And Authorization
+# Rate limiting
+RATE_LIMIT_MAX=200
+```
 
-خلال القسم ده هنشرح عمليه المصادقة بشكل تفصيلي وهنشوف ازاي تسجيل الدخول وانشاء الحساب ونسيت كلمه المرور وازاي بتعمل التوكن وازاي بنعمل عمليه التحقق عليه ..كمان هنشتغل علي صلاحيات المستخدمين وهيكون عندنا ادمن ومانجر ويوزر عادي وكل واحد ليه صلاحيات مختلفة عن التاني... القسم ده مهم جدا وهتستفاد منه جدا
+### Running
 
-11- Reviews, Wishlist And User Addresses
+```bash
+npm run start:dev   # dev with nodemon
+npm start           # production
+```
 
-خلال القسم ده هنبدأ نشتغل علي التقييمات وهنشوف ازاي هنمكن المتسخدم انه يضيف تقييم علي المنتجات وكمان هنحسب متوسط عدد التقييمات علي المنتج الواحد بالاضافة للعدد الكلي للتقيمات علي المنتج الواحد ، كمان هنشرح ازاي نمكن المسخدم انه يضيف منتج لقائمة المفضلة وفي نفس الوقت يقدر يحذفه ، كمان هنمكن المستخدم من انه يضيف عنوان لدفتر العناوين بتاعه يقدر يستخدمه لما يجي يطلب اوردر .
+The API mounts everything under `/api/v1/*`.
 
-12- Coupons And Shopping Cart
+---
 
-خلال القسم ده هنبدأ نمكن الادمن من انه ينشأ الكوبونات وكل كوبون بيكون ليه تاريخ معين ينتهي فيه ونسبة خصم معينة بيحددها الادمن ... والمستخدم هيقدر يستخدم الكوبون ده عشان يتسفاد من الخصم .. كمان هنمكن المستخدم من انه ينشأ سلة المنتجات اللي هيبدأ يضيف فيها المنتجات اللي عايز يشتريها ويعدل يختار ويعدل في كمية المنتجات لو متاح كمية منها في المخزن بالاضافة انه يقدر يضيف كوبون خصم علي السلة .
+## API Overview
 
-13- Cash And Online Orders, Online Payments And Deployments
+| Group | Endpoint |
+|---|---|
+| Auth | `POST /api/v1/auth/register`, `POST /login`, `POST /refresh-token`, `POST /logout`, `POST /forgot-password`, `PUT /reset-password`, `POST /verify-email`, `GET /me` |
+| Users | `GET/PUT/DELETE /api/v1/users/me`, admin CRUD on `/api/v1/users` |
+| Categories | `GET /api/v1/categories`, admin CRUD |
+| Courses | `GET/POST /api/v1/courses`, `GET/PUT/DELETE /:id`, `POST /:id/publish`, `POST /:id/review-decision` |
+| Curriculum | `GET/POST /api/v1/courses/:courseId/sections`, `GET/POST /api/v1/sections/:sectionId/lectures`, global `/api/v1/sections/:id`, `/api/v1/lectures/:id`, reorder endpoints |
+| Enrollments | `POST /api/v1/courses/:courseId/enroll`, `POST/GET /:courseId/progress`, `GET /api/v1/enrollments/me`, `GET /api/v1/courses/:courseId/students` |
+| Quizzes | nested under `/api/v1/courses/:courseId/quizzes`, plus `/:id/attempt`, `/:id/submit`, `/:id/my-attempts` |
+| Assignments | nested under `/api/v1/courses/:courseId/assignments`, plus `/:id/submit`, `/:id/submissions`, `/api/v1/submissions/:id/grade` |
+| Certificates | `POST /api/v1/certificates/courses/:courseId/issue`, `GET /me`, `GET /verify/:serial` |
+| Q&A | nested under `/api/v1/courses/:courseId/qna`, plus `/api/v1/qna/:id`, `/answers`, `/upvote` |
+| Notes | `GET/POST /api/v1/lectures/:lectureId/notes`, `PUT/DELETE /api/v1/notes/:id` |
+| Reviews | nested under `/api/v1/courses/:courseId/reviews` |
+| Instructors | `GET /api/v1/instructors`, `GET /:id`, `PUT /me/profile`, `GET /me/dashboard`, `/me/courses`, `/me/students`, `/me/earnings`, admin `POST /:id/approve` |
+| Cart | `GET/POST/DELETE /api/v1/cart`, `POST /apply-coupon`, `DELETE /:courseId` |
+| Wishlist | `GET/POST /api/v1/wishlist`, `DELETE /:courseId` |
+| Coupons | admin/instructor `/api/v1/coupons` |
+| Payments | `POST /api/v1/payments/checkout`, `POST /free-checkout`, `GET /me`, webhook `/api/v1/payments/webhook` |
+| Notifications | `GET /api/v1/notifications`, `/unread-count`, `POST /read-all`, `/:id/read` |
+| Health | `GET /api/v1/health` |
 
-خلال القسم ده هنبدأ نشتغل علي الاورد ر او الطلبية سواء الاوردر ده هيتم دفعه كاش او عند الاستلام او الاوردر ده هيتم دفعه من خلال بطاقة دفع او محفظة الكترنية زي ابل باي او غيره .. هيتم الربط مع بوابة الدفع ونشوف ايه وسائل الدفع اللي بتوفرها بوابة الدفع وهنعمل عميلة الدفع من خلالها ... وهنشوف ازاي بنشوف عملية الدفع نجحت ولا لا .. وازاي نعمل اوردر في حالة نجاح عملية الدفع .. هنتكلم بالتفصيل عن الدفع الكاش والدفع الالكتروني .. وفي الاخر هنرفع التطبيق علي هيروكو عشان تقدر تشاركه مع الفرونت اند او تحط اللينك في البرورتفوليو بتاعك
+All authenticated routes expect `Authorization: Bearer <accessToken>` header.
 
-14- Security
+---
 
-خلال القسم ده هنتكلم شويه عن وسائل الامان اللي ممكن تستخدمها عشان تأمن التطبيق بتاعك
+## Storage Abstraction
 
-15- Enhancements
+Uploads (images, videos, attachments, certificates) flow through `utils/storage`. The `local` provider writes to `uploads/<folder>/<filename>` and serves files statically. To migrate to S3 or Cloudinary later, drop a new provider into `utils/storage/`, register it in `utils/storage/index.js`, and set `STORAGE_PROVIDER=s3` — no service code needs to change.
 
-خلال القسم ده هنضيف فيه التحسينات اللي هتتضاف في الكورس ... بالاضافة لو فيه مشاكل ظهرت هنسجلها فيديو ونضيفه في السكشن ده
+---
 
-16- Appendix
+## Roadmap
 
-خلال القسم ده هضفلكم شويه دروس عن الجافا سكريبت عشان ترجعو ليها لو عايز تتاسس فيها عشان تساعدك وانت شغال في الكورس
+The Backend in this repo is **Phase 1**. Two more deliverables are planned:
 
+### Web Frontend (separate project)
+- Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
+- Pages: Landing, Course catalog, Course details, Learn (video player with sidebar), Student/Instructor/Admin dashboards, Cart, Checkout, Profile
+- Course builder with drag-and-drop sections/lectures
+- Multi-language (Arabic + English, RTL support) via `next-intl`
+- TanStack Query, Zustand, React Hook Form + Zod, Video.js / Mux Player
 
+### Mobile App (separate project)
+- React Native + Expo (iOS, Android, optional Web)
+- Expo Router, NativeWind, TanStack Query
+- Offline downloads (`expo-file-system`), Picture-in-Picture, Push notifications (`expo-notifications`)
+- Cast support (Chromecast / AirPlay) for video lectures
+
+### Backend hardening (next iterations on this repo)
+- Swagger / OpenAPI documentation
+- Redis caching + session blacklist
+- Bull/BullMQ job queues (transcoding, email, certificate PDFs)
+- Socket.io for live notifications and Q&A
+- S3 / Cloudinary storage provider implementations
+- Test suite (Jest + Supertest)
+
+---
+
+## License
+
+ISC

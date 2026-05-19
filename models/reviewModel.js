@@ -1,11 +1,10 @@
 const mongoose = require('mongoose');
-const Product = require('./productModel');
+const Course = require('./courseModel');
 
 const reviewSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-    },
+    title: String,
+    comment: String,
     ratings: {
       type: Number,
       min: [1, 'Min ratings value is 1.0'],
@@ -17,47 +16,42 @@ const reviewSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Review must belong to user'],
     },
-    // parent reference (one to many)
-    product: {
+    course: {
       type: mongoose.Schema.ObjectId,
-      ref: 'Product',
-      required: [true, 'Review must belong to product'],
+      ref: 'Course',
+      required: [true, 'Review must belong to a course'],
+      index: true,
     },
   },
   { timestamps: true }
 );
 
+reviewSchema.index({ user: 1, course: 1 }, { unique: true });
+
 reviewSchema.pre(/^find/, function (next) {
-  this.populate({ path: 'user', select: 'name' });
+  this.populate({ path: 'user', select: 'name profileImg' });
   next();
 });
 
-reviewSchema.statics.calcAverageRatingsAndQuantity = async function (
-  productId
-) {
+reviewSchema.statics.calcAverageRatingsAndQuantity = async function (courseId) {
   const result = await this.aggregate([
-    // Stage 1 : get all reviews in specific product
-    {
-      $match: { product: productId },
-    },
-    // Stage 2: Grouping reviews based on productID and calc avgRatings, ratingsQuantity
+    { $match: { course: courseId } },
     {
       $group: {
-        _id: 'product',
+        _id: 'course',
         avgRatings: { $avg: '$ratings' },
         ratingsQuantity: { $sum: 1 },
       },
     },
   ]);
 
-  // console.log(result);
   if (result.length > 0) {
-    await Product.findByIdAndUpdate(productId, {
+    await Course.findByIdAndUpdate(courseId, {
       ratingsAverage: result[0].avgRatings,
       ratingsQuantity: result[0].ratingsQuantity,
     });
   } else {
-    await Product.findByIdAndUpdate(productId, {
+    await Course.findByIdAndUpdate(courseId, {
       ratingsAverage: 0,
       ratingsQuantity: 0,
     });
@@ -65,11 +59,11 @@ reviewSchema.statics.calcAverageRatingsAndQuantity = async function (
 };
 
 reviewSchema.post('save', async function () {
-  await this.constructor.calcAverageRatingsAndQuantity(this.product);
+  await this.constructor.calcAverageRatingsAndQuantity(this.course);
 });
 
 reviewSchema.post('remove', async function () {
-  await this.constructor.calcAverageRatingsAndQuantity(this.product);
+  await this.constructor.calcAverageRatingsAndQuantity(this.course);
 });
 
 module.exports = mongoose.model('Review', reviewSchema);

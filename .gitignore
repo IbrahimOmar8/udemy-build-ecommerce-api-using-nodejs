@@ -1,5 +1,12 @@
 node_modules/
 
 config.env
+.env
 
-uploads/``
+uploads/
+!uploads/.gitkeep
+
+*.log
+.DS_Store
+.vscode/*.code-workspace
+coverage/

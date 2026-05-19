@@ -1,180 +1,116 @@
 const asyncHandler = require('express-async-handler');
+
 const ApiError = require('../utils/apiError');
-
-const Product = require('../models/productModel');
-const Coupon = require('../models/couponModel');
 const Cart = require('../models/cartModel');
+const Course = require('../models/courseModel');
+const Coupon = require('../models/couponModel');
+const Enrollment = require('../models/enrollmentModel');
 
-const calcTotalCartPrice = (cart) => {
-  let totalPrice = 0;
-  cart.cartItems.forEach((item) => {
-    totalPrice += item.quantity * item.price;
-  });
-  cart.totalCartPrice = totalPrice;
-  cart.totalPriceAfterDiscount = undefined;
-  return totalPrice;
+const calcTotal = (cart) => {
+  cart.totalPrice = cart.items.reduce((s, i) => s + (i.price || 0), 0);
+  cart.totalAfterDiscount = cart.totalPrice;
 };
 
-// @desc    Add product to  cart
-// @route   POST /api/v1/cart
-// @access  Private/User
-exports.addProductToCart = asyncHandler(async (req, res, next) => {
-  const { productId, color } = req.body;
-  const product = await Product.findById(productId);
-
-  // 1) Get Cart for logged user
-  let cart = await Cart.findOne({ user: req.user._id });
-
-  if (!cart) {
-    // create cart fot logged user with product
-    cart = await Cart.create({
-      user: req.user._id,
-      cartItems: [{ product: productId, color, price: product.price }],
-    });
-  } else {
-    // product exist in cart, update product quantity
-    const productIndex = cart.cartItems.findIndex(
-      (item) => item.product.toString() === productId && item.color === color
-    );
-
-    if (productIndex > -1) {
-      const cartItem = cart.cartItems[productIndex];
-      cartItem.quantity += 1;
-
-      cart.cartItems[productIndex] = cartItem;
-    } else {
-      // product not exist in cart,  push product to cartItems array
-      cart.cartItems.push({ product: productId, color, price: product.price });
-    }
-  }
-
-  // Calculate total cart price
-  calcTotalCartPrice(cart);
-  await cart.save();
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Product added to cart successfully',
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
-  });
-});
-
-// @desc    Get logged user cart
+// @desc    Get my cart
 // @route   GET /api/v1/cart
-// @access  Private/User
-exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
-  const cart = await Cart.findOne({ user: req.user._id });
+exports.getMyCart = asyncHandler(async (req, res) => {
+  let cart = await Cart.findOne({ user: req.user._id }).populate(
+    'items.course',
+    'title slug thumbnail price discountPrice instructor'
+  );
+  if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
+  res.status(200).json({ data: cart });
+});
 
-  if (!cart) {
-    return next(
-      new ApiError(`There is no cart for this user id : ${req.user._id}`, 404)
-    );
+// @desc    Add course to cart
+// @route   POST /api/v1/cart
+exports.addToCart = asyncHandler(async (req, res, next) => {
+  const { courseId } = req.body;
+  const course = await Course.findById(courseId);
+  if (!course) return next(new ApiError('Course not found', 404));
+  if (course.status !== 'published') {
+    return next(new ApiError('Course not available', 400));
   }
 
-  res.status(200).json({
-    status: 'success',
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
+  const enrolled = await Enrollment.findOne({
+    student: req.user._id,
+    course: course._id,
   });
+  if (enrolled) return next(new ApiError('Already enrolled', 400));
+
+  let cart = await Cart.findOne({ user: req.user._id });
+  if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
+
+  if (cart.items.some((i) => i.course.toString() === courseId)) {
+    return next(new ApiError('Course already in cart', 400));
+  }
+
+  const price = course.discountPrice && course.discountPrice > 0
+    ? course.discountPrice
+    : course.price;
+  cart.items.push({ course: course._id, price });
+  calcTotal(cart);
+  await cart.save();
+  res.status(200).json({ data: cart });
 });
 
-// @desc    Remove specific cart item
-// @route   DELETE /api/v1/cart/:itemId
-// @access  Private/User
-exports.removeSpecificCartItem = asyncHandler(async (req, res, next) => {
-  const cart = await Cart.findOneAndUpdate(
-    { user: req.user._id },
-    {
-      $pull: { cartItems: { _id: req.params.itemId } },
-    },
-    { new: true }
+// @desc    Remove course from cart
+// @route   DELETE /api/v1/cart/:courseId
+exports.removeFromCart = asyncHandler(async (req, res, next) => {
+  const cart = await Cart.findOne({ user: req.user._id });
+  if (!cart) return next(new ApiError('Cart empty', 404));
+  cart.items = cart.items.filter(
+    (i) => i.course.toString() !== req.params.courseId
   );
-
-  calcTotalCartPrice(cart);
-  cart.save();
-
-  res.status(200).json({
-    status: 'success',
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
-  });
+  calcTotal(cart);
+  await cart.save();
+  res.status(200).json({ data: cart });
 });
 
-// @desc    clear logged user cart
+// @desc    Clear cart
 // @route   DELETE /api/v1/cart
-// @access  Private/User
-exports.clearCart = asyncHandler(async (req, res, next) => {
-  await Cart.findOneAndDelete({ user: req.user._id });
+exports.clearCart = asyncHandler(async (req, res) => {
+  await Cart.findOneAndUpdate(
+    { user: req.user._id },
+    { items: [], coupon: null, totalPrice: 0, totalAfterDiscount: 0 }
+  );
   res.status(204).send();
 });
 
-// @desc    Update specific cart item quantity
-// @route   PUT /api/v1/cart/:itemId
-// @access  Private/User
-exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
-  const { quantity } = req.body;
-
-  const cart = await Cart.findOne({ user: req.user._id });
-  if (!cart) {
-    return next(new ApiError(`there is no cart for user ${req.user._id}`, 404));
-  }
-
-  const itemIndex = cart.cartItems.findIndex(
-    (item) => item._id.toString() === req.params.itemId
-  );
-  if (itemIndex > -1) {
-    const cartItem = cart.cartItems[itemIndex];
-    cartItem.quantity = quantity;
-    cart.cartItems[itemIndex] = cartItem;
-  } else {
-    return next(
-      new ApiError(`there is no item for this id :${req.params.itemId}`, 404)
-    );
-  }
-
-  calcTotalCartPrice(cart);
-
-  await cart.save();
-
-  res.status(200).json({
-    status: 'success',
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
-  });
-});
-
-// @desc    Apply coupon on logged user cart
-// @route   PUT /api/v1/cart/applyCoupon
-// @access  Private/User
+// @desc    Apply coupon
+// @route   POST /api/v1/cart/apply-coupon
 exports.applyCoupon = asyncHandler(async (req, res, next) => {
-  // 1) Get coupon based on coupon name
+  const { code } = req.body;
   const coupon = await Coupon.findOne({
-    name: req.body.coupon,
-    expire: { $gt: Date.now() },
+    code: code.toUpperCase(),
+    isActive: true,
+    expireAt: { $gt: new Date() },
   });
-
-  if (!coupon) {
-    return next(new ApiError(`Coupon is invalid or expired`));
+  if (!coupon) return next(new ApiError('Invalid or expired coupon', 400));
+  if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+    return next(new ApiError('Coupon usage limit reached', 400));
   }
 
-  // 2) Get logged user cart to get total cart price
   const cart = await Cart.findOne({ user: req.user._id });
+  if (!cart || cart.items.length === 0) {
+    return next(new ApiError('Cart is empty', 400));
+  }
 
-  const totalPrice = cart.totalCartPrice;
+  let discountable = cart.totalPrice;
+  if (coupon.appliesTo === 'specific') {
+    discountable = cart.items
+      .filter((i) =>
+        coupon.courses.map((c) => c.toString()).includes(i.course.toString())
+      )
+      .reduce((s, i) => s + i.price, 0);
+  }
+  const discount =
+    coupon.discountType === 'percent'
+      ? (discountable * coupon.discountValue) / 100
+      : Math.min(coupon.discountValue, discountable);
 
-  // 3) Calculate price after priceAfterDiscount
-  const totalPriceAfterDiscount = (
-    totalPrice -
-    (totalPrice * coupon.discount) / 100
-  ).toFixed(2); // 99.23
-
-  cart.totalPriceAfterDiscount = totalPriceAfterDiscount;
+  cart.coupon = coupon._id;
+  cart.totalAfterDiscount = Math.max(0, cart.totalPrice - discount);
   await cart.save();
-
-  res.status(200).json({
-    status: 'success',
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
-  });
+  res.status(200).json({ data: cart, discount });
 });

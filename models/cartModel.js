@@ -2,26 +2,17 @@ const mongoose = require('mongoose');
 
 const cartSchema = new mongoose.Schema(
   {
-    cartItems: [
+    user: { type: mongoose.Schema.ObjectId, ref: 'User', required: true, unique: true },
+    items: [
       {
-        product: {
-          type: mongoose.Schema.ObjectId,
-          ref: 'Product',
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-        },
-        color: String,
+        course: { type: mongoose.Schema.ObjectId, ref: 'Course', required: true },
         price: Number,
+        addedAt: { type: Date, default: Date.now },
       },
     ],
-    totalCartPrice: Number,
-    totalPriceAfterDiscount: Number,
-    user: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'User',
-    },
+    coupon: { type: mongoose.Schema.ObjectId, ref: 'Coupon' },
+    totalPrice: { type: Number, default: 0 },
+    totalAfterDiscount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

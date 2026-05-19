@@ -14,7 +14,8 @@ const {
   updateReview,
   deleteReview,
   createFilterObj,
-  setProductIdAndUserIdToBody,
+  setCourseIdAndUserIdToBody,
+  verifyEnrollment,
 } = require('../services/reviewService');
 
 const authService = require('../services/authService');
@@ -26,8 +27,9 @@ router
   .get(createFilterObj, getReviews)
   .post(
     authService.protect,
-    authService.allowedTo('user'),
-    setProductIdAndUserIdToBody,
+    authService.allowedTo('student'),
+    setCourseIdAndUserIdToBody,
+    verifyEnrollment,
     createReviewValidator,
     createReview
   );
@@ -36,13 +38,13 @@ router
   .get(getReviewValidator, getReview)
   .put(
     authService.protect,
-    authService.allowedTo('user'),
+    authService.allowedTo('student'),
     updateReviewValidator,
     updateReview
   )
   .delete(
     authService.protect,
-    authService.allowedTo('user', 'manager', 'admin'),
+    authService.allowedTo('student', 'admin'),
     deleteReviewValidator,
     deleteReview
   );

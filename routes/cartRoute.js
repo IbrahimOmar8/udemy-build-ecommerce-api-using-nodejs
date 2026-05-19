@@ -1,29 +1,20 @@
 const express = require('express');
+const authService = require('../services/authService');
 
 const {
-  addProductToCart,
-  getLoggedUserCart,
-  removeSpecificCartItem,
+  getMyCart,
+  addToCart,
+  removeFromCart,
   clearCart,
-  updateCartItemQuantity,
   applyCoupon,
 } = require('../services/cartService');
-const authService = require('../services/authService');
 
 const router = express.Router();
 
-router.use(authService.protect, authService.allowedTo('user'));
-router
-  .route('/')
-  .post(addProductToCart)
-  .get(getLoggedUserCart)
-  .delete(clearCart);
+router.use(authService.protect, authService.allowedTo('student'));
 
-router.put('/applyCoupon', applyCoupon);
-
-router
-  .route('/:itemId')
-  .put(updateCartItemQuantity)
-  .delete(removeSpecificCartItem);
+router.route('/').get(getMyCart).post(addToCart).delete(clearCart);
+router.post('/apply-coupon', applyCoupon);
+router.delete('/:courseId', removeFromCart);
 
 module.exports = router;
