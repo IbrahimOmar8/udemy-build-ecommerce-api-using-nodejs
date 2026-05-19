@@ -88,11 +88,16 @@ This repository hosts the **Backend** of the platform. Two companion frontends a
 - Auto-aggregated `ratingsAverage` and `ratingsQuantity` on the course
 
 ### Infrastructure
-- Pluggable storage abstraction (`utils/storage`) — currently `local`, can be swapped to S3 / Cloudinary without touching service code
+- Pluggable storage abstraction (`utils/storage`) with three providers shipped: **local**, **S3**, **Cloudinary** — swap via the `STORAGE_PROVIDER` env var, no service code touched
+- **Swagger / OpenAPI** docs at `/api/docs` (spec at `/api/docs.json`)
+- **Socket.io** for live notifications and Q&A replies (rooms per user / per course)
+- **Redis** cache layer (`middlewares/cacheMiddleware.cacheResponse`) — falls back to no-op when `REDIS_URL` is unset
+- **BullMQ** queues with workers for email and certificate generation; falls back to inline execution when Redis is missing so the app keeps working in dev
 - Centralized error handling with `ApiError`
 - API features helper (filter, sort, search, paginate, field limiting)
 - Rate limiting, HPP protection, CORS, compression
 - Health check at `/api/v1/health`
+- Jest + Supertest test suite with in-memory MongoDB (`npm test`)
 
 ---
 
@@ -103,9 +108,13 @@ This repository hosts the **Backend** of the platform. Two companion frontends a
 - **DB**: MongoDB via Mongoose 6
 - **Auth**: JWT (access + refresh)
 - **Validation**: express-validator
-- **Uploads**: multer + sharp
-- **Payments**: Stripe
+- **Uploads**: multer + sharp; pluggable storage (local / AWS S3 / Cloudinary)
+- **Payments**: Stripe Checkout
 - **Email**: nodemailer
+- **Realtime**: Socket.io
+- **Cache + Queues**: Redis + BullMQ
+- **Docs**: swagger-jsdoc + swagger-ui-express (OpenAPI 3)
+- **Tests**: Jest + Supertest + mongodb-memory-server
 
 ---
 
@@ -190,9 +199,28 @@ This repository hosts the **Backend** of the platform. Two companion frontends a
 │   ├── certificateGenerator.js
 │   └── storage/
 │       ├── index.js
-│       └── localProvider.js
+│       ├── localProvider.js
+│       ├── s3Provider.js
+│       └── cloudinaryProvider.js
+├── workers/
+│   ├── emailWorker.js
+│   └── certificateWorker.js
+├── tests/
+│   ├── setup.js
+│   ├── auth.test.js
+│   ├── course.test.js
+│   └── health.test.js
+├── docs/
+│   └── openapi-paths.yaml
+├── config/
+│   ├── database.js
+│   ├── swagger.js
+│   ├── socket.js
+│   ├── redis.js
+│   └── queue.js
 ├── uploads/        (gitignored runtime media)
-├── server.js
+├── app.js          (express app factory; used by server.js and tests)
+├── server.js       (HTTP listener + workers + Socket.io)
 └── package.json
 ```
 
@@ -233,28 +261,49 @@ EMAIL_PORT=587
 EMAIL_USER=
 EMAIL_PASSWORD=
 
-# Storage
+# Storage (local | s3 | cloudinary)
 STORAGE_PROVIDER=local
 MAX_VIDEO_SIZE_MB=500
 MAX_FILE_SIZE_MB=50
+
+# S3 (when STORAGE_PROVIDER=s3)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_S3_BUCKET=
+AWS_S3_PUBLIC_URL=
+
+# Cloudinary (when STORAGE_PROVIDER=cloudinary)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 
 # Payments
 STRIPE_SECRET=
 STRIPE_WEBHOOK_SECRET=
 FRONTEND_URL=http://localhost:3000
 
+# Redis (optional — enables cache + workers + queues)
+REDIS_URL=
+
 # Rate limiting
 RATE_LIMIT_MAX=200
+
+# Set to "false" to skip in-process workers
+RUN_WORKERS=true
 ```
+
+A ready-to-copy template lives at `config.env.example`.
 
 ### Running
 
 ```bash
 npm run start:dev   # dev with nodemon
 npm start           # production
+npm test            # run jest test suite (in-memory MongoDB)
 ```
 
-The API mounts everything under `/api/v1/*`.
+The API mounts everything under `/api/v1/*`. Interactive docs are at `/api/docs`.
 
 ---
 
@@ -288,7 +337,44 @@ All authenticated routes expect `Authorization: Bearer <accessToken>` header.
 
 ## Storage Abstraction
 
-Uploads (images, videos, attachments, certificates) flow through `utils/storage`. The `local` provider writes to `uploads/<folder>/<filename>` and serves files statically. To migrate to S3 or Cloudinary later, drop a new provider into `utils/storage/`, register it in `utils/storage/index.js`, and set `STORAGE_PROVIDER=s3` — no service code needs to change.
+Uploads (images, videos, attachments, certificates) flow through `utils/storage`. Three providers ship by default:
+- `local` — writes to `uploads/<folder>/<filename>` and serves files via Express static middleware
+- `s3` — AWS S3 via `@aws-sdk/client-s3`
+- `cloudinary` — Cloudinary (auto-detects resource type: image / video / raw)
+
+Switch providers by setting `STORAGE_PROVIDER=local|s3|cloudinary`. Service code never references a specific provider.
+
+---
+
+## Realtime, Cache, Queues
+
+- **Socket.io** is mounted alongside Express on the same port (`/socket.io`). Authenticate the handshake with `auth.token = "<accessToken>"`. After connecting, the client joins:
+  - `user:<userId>` automatically when authenticated, receives `notification:new` events
+  - `course:<courseId>` after emitting `course:join` (e.g. while viewing a course page), receives `qna:answer` events
+- **Cache**: `middlewares/cacheMiddleware.cacheResponse(ttlSeconds)` is applied to the `GET /courses` listing. Set `REDIS_URL` to activate; otherwise the middleware is a no-op.
+- **Queues**: `email` and `certificate` queues are powered by **BullMQ** and consumed by the workers in `workers/`. When Redis is not available, the helper falls back to inline execution so behavior stays identical from the caller's perspective.
+
+---
+
+## API Docs
+
+Once the server is running, browse to:
+- **Swagger UI**: `http://localhost:8000/api/docs`
+- **Raw OpenAPI**: `http://localhost:8000/api/docs.json`
+
+Path coverage lives in `docs/openapi-paths.yaml` and is picked up automatically.
+
+---
+
+## Tests
+
+```bash
+npm test
+```
+
+Tests use Jest + Supertest with an in-memory MongoDB (`mongodb-memory-server`). The Express app factory in `app.js` lets tests instantiate the API without binding a port or starting workers.
+
+Coverage so far: auth flow (register, login, refresh, me, protected routes), course lifecycle (create, role guards, publish gate, enroll restrictions), and health checks. Add more tests under `tests/*.test.js`.
 
 ---
 

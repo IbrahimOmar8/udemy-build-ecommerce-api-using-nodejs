@@ -4,6 +4,8 @@ const ApiError = require('../utils/apiError');
 const Qna = require('../models/qnaModel');
 const Course = require('../models/courseModel');
 const Enrollment = require('../models/enrollmentModel');
+const { emitToCourse, emitToUser } = require('../config/socket');
+const { createNotification } = require('./notificationService');
 
 // @desc    List Q&A for a course
 // @route   GET /api/v1/courses/:courseId/qna
@@ -70,6 +72,22 @@ exports.addAnswer = asyncHandler(async (req, res, next) => {
   });
   if (isInstructor) q.isResolved = true;
   await q.save();
+
+  emitToCourse(q.course.toString(), 'qna:answer', {
+    qnaId: q._id,
+    answer: q.answers[q.answers.length - 1],
+  });
+
+  if (q.user.toString() !== req.user._id.toString()) {
+    await createNotification({
+      recipient: q.user,
+      type: 'qna_reply',
+      title: 'New reply to your question',
+      body: q.title,
+      data: { qnaId: q._id, courseId: q.course },
+    });
+  }
+
   res.status(201).json({ data: q });
 });
 

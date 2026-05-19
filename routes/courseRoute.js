@@ -24,6 +24,7 @@ const {
 } = require('../services/courseService');
 
 const authService = require('../services/authService');
+const { cacheResponse } = require('../middlewares/cacheMiddleware');
 
 const sectionRoute = require('./sectionRoute');
 const reviewRoute = require('./reviewRoute');
@@ -44,7 +45,13 @@ router.use('/:courseId', enrollmentRoute);
 
 router
   .route('/')
-  .get(authService.optionalAuth, publicFilter, getCoursesValidator, getCourses)
+  .get(
+    authService.optionalAuth,
+    publicFilter,
+    cacheResponse(60),
+    getCoursesValidator,
+    getCourses
+  )
   .post(
     authService.protect,
     authService.allowedTo('instructor', 'admin'),

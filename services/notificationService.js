@@ -1,10 +1,20 @@
 const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const Notification = require('../models/notificationModel');
+const { emitToUser } = require('../config/socket');
 
 // @desc    Helper to create notifications (used internally)
+// Also pushes a real-time event via Socket.io when configured.
 exports.createNotification = async ({ recipient, type, title, body, data }) => {
-  return Notification.create({ recipient, type, title, body, data });
+  const notification = await Notification.create({
+    recipient,
+    type,
+    title,
+    body,
+    data,
+  });
+  emitToUser(recipient.toString(), 'notification:new', notification);
+  return notification;
 };
 
 // @desc    List my notifications
