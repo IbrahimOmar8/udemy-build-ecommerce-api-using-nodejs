@@ -382,26 +382,40 @@ Coverage so far: auth flow (register, login, refresh, me, protected routes), cou
 
 The Backend in this repo is **Phase 1**. Two more deliverables are planned:
 
-### Web Frontend (separate project)
-- Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
-- Pages: Landing, Course catalog, Course details, Learn (video player with sidebar), Student/Instructor/Admin dashboards, Cart, Checkout, Profile
-- Course builder with drag-and-drop sections/lectures
-- Multi-language (Arabic + English, RTL support) via `next-intl`
-- TanStack Query, Zustand, React Hook Form + Zod, Video.js / Mux Player
+### Web Frontend — shipped in `web/`
+- Next.js 14 (App Router) + TypeScript + Tailwind
+- Pages: Landing, course catalog with filters, course details, Learn (video player with sidebar), Student & Instructor dashboards, Cart with Stripe checkout, Course builder (sections + lectures + video upload), Profile, Certificates
+- Auth with auto refresh-token via axios interceptor; tokens persisted in `localStorage`
+- TanStack Query, Zustand, React Hook Form
 
-### Mobile App (separate project)
-- React Native + Expo (iOS, Android, optional Web)
-- Expo Router, NativeWind, TanStack Query
-- Offline downloads (`expo-file-system`), Picture-in-Picture, Push notifications (`expo-notifications`)
-- Cast support (Chromecast / AirPlay) for video lectures
+### Mobile App — shipped in `mobile/`
+- React Native + Expo SDK 50 + TypeScript
+- Expo Router (file-based), expo-av for video playback, expo-secure-store for tokens
+- Tabs: Home, Browse, My Learning, Account
+- Course details + Learn screen (player + curriculum) with progress tracking
+- Stack ready for future additions: offline downloads, PiP, push notifications, Chromecast
 
-### Backend hardening (next iterations on this repo)
-- Swagger / OpenAPI documentation
-- Redis caching + session blacklist
-- Bull/BullMQ job queues (transcoding, email, certificate PDFs)
-- Socket.io for live notifications and Q&A
-- S3 / Cloudinary storage provider implementations
-- Test suite (Jest + Supertest)
+### Future iterations
+- Drag-and-drop reordering UI in the course builder
+- HLS/DASH adaptive streaming with Mux or Cloudflare Stream
+- Push notifications (Expo + APNs/FCM)
+- Multi-language (Arabic + English with RTL)
+- AI-assisted curriculum drafting, transcript generation, captioning
+- Live cohort sessions (WebRTC)
+
+---
+
+## Monorepo layout
+
+```
+.
+├── (backend at root)        — Express API
+├── web/                     — Next.js 14 frontend (npm install && npm run dev)
+├── mobile/                  — Expo + React Native app (cd mobile && npm install && npm start)
+└── README.md                — this file
+```
+
+Each subproject has its own `README.md` with run instructions.
 
 ---
 

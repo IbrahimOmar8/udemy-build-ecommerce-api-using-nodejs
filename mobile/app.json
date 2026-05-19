@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "LearnHub",
+    "slug": "learnhub-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "learnhub",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#243df5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.learnhub.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#243df5"
+      },
+      "package": "com.learnhub.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8000/api/v1",
+      "apiOrigin": "http://localhost:8000"
+    }
+  }
+}
