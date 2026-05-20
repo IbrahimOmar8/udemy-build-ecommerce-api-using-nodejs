@@ -12,6 +12,7 @@ const instructorRoute = require('./instructorRoute');
 const reviewRoute = require('./reviewRoute');
 const qnaGlobalRoute = require('./qnaGlobalRoute');
 const noteGlobalRoute = require('./noteGlobalRoute');
+const quizGlobalRoute = require('./quizGlobalRoute');
 
 const cartRoute = require('./cartRoute');
 const wishlistRoute = require('./wishlistRoute');
@@ -36,6 +37,7 @@ const mountRoutes = (app) => {
   app.use('/api/v1/reviews', reviewRoute);
   app.use('/api/v1/qna', qnaGlobalRoute);
   app.use('/api/v1/notes', noteGlobalRoute);
+  app.use('/api/v1/quizzes', quizGlobalRoute);
 
   app.use('/api/v1/cart', cartRoute);
   app.use('/api/v1/wishlist', wishlistRoute);

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { I18nProvider } from '@/lib/i18n/I18nProvider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -25,5 +26,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, fetchMe]);
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <I18nProvider>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </I18nProvider>
+  );
 }

@@ -25,6 +25,7 @@ import { formatDuration, formatPrice } from '@/lib/utils';
 import { extractError } from '@/lib/api';
 import { useState } from 'react';
 import Link from 'next/link';
+import QnaPanel from '@/components/course/QnaPanel';
 
 export default function CourseDetailsPage() {
   const params = useParams<{ slug: string }>();
@@ -265,6 +266,11 @@ export default function CourseDetailsPage() {
             <div>
               <h2 className="mb-3 text-xl font-bold">Description</h2>
               <p className="whitespace-pre-line text-sm text-gray-700">{course.description}</p>
+            </div>
+
+            {/* Q&A */}
+            <div>
+              <QnaPanel courseId={course._id} />
             </div>
 
             {/* Reviews */}

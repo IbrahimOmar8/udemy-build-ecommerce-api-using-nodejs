@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Bell, BookOpen, LogOut, Menu, Search, ShoppingCart, User } from 'lucide-react';
+import { BookOpen, LogOut, Search, ShoppingCart } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useT } from '@/lib/i18n/I18nProvider';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import NotificationsBell from './NotificationsBell';
 
 export default function Header() {
   const router = useRouter();
   const { user, logout, hydrated } = useAuthStore();
+  const t = useT();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -36,21 +40,23 @@ export default function Header() {
           href="/courses"
           className="hidden text-sm text-gray-600 hover:text-gray-900 md:inline"
         >
-          Browse courses
+          {t('nav.browse')}
         </Link>
 
         <form onSubmit={onSearch} className="flex flex-1 max-w-xl">
           <div className="flex w-full items-center rounded-md border border-gray-300 bg-white">
-            <Search className="ml-3 h-4 w-4 text-gray-400" />
+            <Search className="mx-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for courses, topics, instructors..."
-              className="w-full bg-transparent px-3 py-2 text-sm focus:outline-none"
+              placeholder={t('nav.searchPlaceholder')}
+              className="w-full bg-transparent px-1 py-2 text-sm focus:outline-none"
             />
           </div>
         </form>
+
+        <LanguageSwitcher />
 
         <Link
           href="/cart"
@@ -66,26 +72,22 @@ export default function Header() {
               href="/login"
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Log in
+              {t('nav.login')}
             </Link>
             <Link
               href="/register"
               className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
             >
-              Sign up
+              {t('nav.signup')}
             </Link>
           </div>
         )}
 
         {hydrated && user && (
           <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="hidden p-2 text-gray-600 hover:text-gray-900 md:block"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-            </Link>
+            <div className="hidden md:block">
+              <NotificationsBell />
+            </div>
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setOpen((v) => !v)}
@@ -106,37 +108,45 @@ export default function Header() {
                     href="/dashboard"
                     className="block px-3 py-2 text-sm hover:bg-gray-50"
                   >
-                    My learning
+                    {t('nav.myLearning')}
                   </Link>
                   {user.role === 'instructor' && (
                     <Link
                       href="/instructor"
                       className="block px-3 py-2 text-sm hover:bg-gray-50"
                     >
-                      Instructor dashboard
+                      {t('nav.instructorDashboard')}
+                    </Link>
+                  )}
+                  {user.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      className="block px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Admin
                     </Link>
                   )}
                   <Link
                     href="/certificates"
                     className="block px-3 py-2 text-sm hover:bg-gray-50"
                   >
-                    Certificates
+                    {t('nav.certificates')}
                   </Link>
                   <Link
                     href="/profile"
                     className="block px-3 py-2 text-sm hover:bg-gray-50"
                   >
-                    Profile
+                    {t('nav.profile')}
                   </Link>
                   <button
                     onClick={async () => {
                       await logout();
                       router.push('/');
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm text-red-600 hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4" />
-                    Log out
+                    {t('nav.logout')}
                   </button>
                 </div>
               )}

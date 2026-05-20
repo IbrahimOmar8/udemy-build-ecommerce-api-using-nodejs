@@ -6,6 +6,8 @@
   "scripts": {
     "start": "NODE_ENV=production node server.js",
     "start:dev": "nodemon server.js",
+    "seed": "node scripts/seed.js",
+    "seed:reset": "node scripts/seed.js --reset",
     "test": "NODE_ENV=test jest --runInBand --detectOpenHandles --forceExit",
     "test:watch": "NODE_ENV=test jest --watch",
     "lint": "eslint ."

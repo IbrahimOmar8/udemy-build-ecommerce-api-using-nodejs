@@ -228,16 +228,41 @@ This repository hosts the **Backend** of the platform. Two companion frontends a
 
 ## Setup
 
-### Prerequisites
+### Option A — Docker (recommended for first run)
+
+```bash
+docker compose up --build
+# API:   http://localhost:8000
+# Mongo: localhost:27017
+# Redis: localhost:6379
+```
+
+This brings up the API plus MongoDB and Redis with one command. To stop:
+
+```bash
+docker compose down
+```
+
+To seed sample data (admin, instructors, students, courses) into the dockerized DB:
+
+```bash
+docker compose exec api npm run seed
+```
+
+### Option B — Bare metal
+
+#### Prerequisites
 - Node.js 16+ (or 18+)
 - MongoDB 5+
+- (Optional) Redis 6+ for cache, real-time, and queues
 - (Optional) Stripe account for paid courses
 - (Optional) SMTP credentials for email
 
-### Installation
+#### Installation
 
 ```bash
 npm install
+npm run seed     # populate sample data (admin@learnhub.dev / admin123456)
 ```
 
 ### Environment
@@ -387,6 +412,17 @@ The Backend in this repo is **Phase 1**. Two more deliverables are planned:
 - Pages: Landing, course catalog with filters, course details, Learn (video player with sidebar), Student & Instructor dashboards, Cart with Stripe checkout, Course builder (sections + lectures + video upload), Profile, Certificates
 - Auth with auto refresh-token via axios interceptor; tokens persisted in `localStorage`
 - TanStack Query, Zustand, React Hook Form
+
+### Latest additions
+
+- **Docker compose** for one-command local stack (API + MongoDB + Redis)
+- **Database seeder** (`npm run seed`) with admin, instructors, students, categories, sample courses + sections + lectures + reviews + coupons
+- **GitHub Actions CI** under `.github/workflows/ci.yml` — backend tests, web build + typecheck, mobile typecheck
+- **Arabic + RTL** support on the web (i18n provider with `Locale = 'en' | 'ar'`, persisted in localStorage, applies `dir="rtl"` automatically)
+- **Real-time notifications** via Socket.io client in the web header (live unread badge, dropdown)
+- **Q&A panel** on course details — ask questions, reply, upvote, live updates via Socket.io room
+- **Admin pages**: `/admin` overview, pending course review (approve/reject), `/admin/users`, `/admin/instructors` (approve)
+- **Test suite expanded** from 13 → 28 tests covering enrollment, cart + coupons, quiz auto-grading
 
 ### Mobile App — shipped in `mobile/`
 - React Native + Expo SDK 50 + TypeScript

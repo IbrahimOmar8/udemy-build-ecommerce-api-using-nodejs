@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - '8000:8000'
+    environment:
+      PORT: 8000
+      NODE_ENV: production
+      BASE_URL: http://localhost:8000
+      DB_URI: mongodb://mongo:27017/elearning
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-please-very-long-string-for-jwt}
+      JWT_EXPIRE_TIME: ${JWT_EXPIRE_TIME:-15m}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-change-me-please-very-long-refresh}
+      JWT_REFRESH_EXPIRE_TIME: ${JWT_REFRESH_EXPIRE_TIME:-30d}
+      STORAGE_PROVIDER: local
+      REDIS_URL: redis://redis:6379
+      RATE_LIMIT_MAX: 500
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      STRIPE_SECRET: ${STRIPE_SECRET:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+    volumes:
+      - uploads_data:/app/uploads
+
+volumes:
+  mongo_data:
+  redis_data:
+  uploads_data:
