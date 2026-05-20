@@ -26,6 +26,10 @@ import { extractError } from '@/lib/api';
 import { useState } from 'react';
 import Link from 'next/link';
 import QnaPanel from '@/components/course/QnaPanel';
+import CourseIncludes from '@/components/course/CourseIncludes';
+import SimilarCourses from '@/components/course/SimilarCourses';
+import AnnouncementsPanel from '@/components/course/AnnouncementsPanel';
+import MessageInstructorButton from '@/components/course/MessageInstructorButton';
 
 export default function CourseDetailsPage() {
   const params = useParams<{ slug: string }>();
@@ -173,19 +177,12 @@ export default function CourseDetailsPage() {
                 {msg.text}
               </div>
             )}
-            <ul className="mt-5 space-y-2 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" /> {course.totalLectures} lectures
-              </li>
-              <li className="flex items-center gap-2">
-                <Clock className="h-4 w-4" /> {formatDuration(course.totalDurationSeconds)}
-              </li>
-              {course.hasCertificate && (
-                <li className="flex items-center gap-2">
-                  <Award className="h-4 w-4" /> Certificate of completion
-                </li>
-              )}
-            </ul>
+            <div className="mt-5">
+              <CourseIncludes course={course} />
+            </div>
+            <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              💰 30-day money-back guarantee
+            </p>
           </div>
         </div>
       </section>
@@ -268,10 +265,23 @@ export default function CourseDetailsPage() {
               <p className="whitespace-pre-line text-sm text-gray-700">{course.description}</p>
             </div>
 
+            {/* Announcements */}
+            <AnnouncementsPanel
+              courseId={course._id}
+              isOwner={
+                !!user &&
+                typeof course.instructor === 'object' &&
+                course.instructor._id === user._id
+              }
+            />
+
             {/* Q&A */}
             <div>
               <QnaPanel courseId={course._id} />
             </div>
+
+            {/* Similar */}
+            <SimilarCourses courseId={course._id} />
 
             {/* Reviews */}
             <div>
@@ -323,12 +333,17 @@ export default function CourseDetailsPage() {
                 </div>
               </div>
               {typeof course.instructor === 'object' && (
-                <Link
-                  href={`/instructors/${course.instructor._id}`}
-                  className="mt-3 inline-block text-sm text-brand-700 hover:underline"
-                >
-                  View profile
-                </Link>
+                <div className="mt-3 flex flex-col gap-2">
+                  <Link
+                    href={`/instructors/${course.instructor._id}`}
+                    className="text-sm text-brand-700 hover:underline"
+                  >
+                    View profile
+                  </Link>
+                  {user && user._id !== course.instructor._id && (
+                    <MessageInstructorButton instructorId={course.instructor._id} />
+                  )}
+                </div>
               )}
             </div>
           </aside>

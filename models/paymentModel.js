@@ -30,6 +30,9 @@ const paymentSchema = new mongoose.Schema(
     stripeSessionId: String,
     paidAt: Date,
     refundedAt: Date,
+    refundAmount: { type: Number, default: 0 },
+    refundReason: String,
+    refundedCourses: [{ type: mongoose.Schema.ObjectId, ref: 'Course' }],
   },
   { timestamps: true }
 );

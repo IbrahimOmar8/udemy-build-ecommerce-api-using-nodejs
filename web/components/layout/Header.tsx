@@ -127,6 +127,12 @@ export default function Header() {
                     </Link>
                   )}
                   <Link
+                    href="/messages"
+                    className="block px-3 py-2 text-sm hover:bg-gray-50"
+                  >
+                    Messages
+                  </Link>
+                  <Link
                     href="/certificates"
                     className="block px-3 py-2 text-sm hover:bg-gray-50"
                   >

@@ -181,6 +181,38 @@ exports.reviewDecision = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: course });
 });
 
+// @desc    Recommend similar courses (same category / overlapping tags / same instructor)
+// @route   GET /api/v1/courses/:id/similar
+// @access  Public
+exports.similarCourses = asyncHandler(async (req, res, next) => {
+  const course = await Course.findById(req.params.id);
+  if (!course) return next(new ApiError('Course not found', 404));
+
+  const similar = await Course.find({
+    _id: { $ne: course._id },
+    status: 'published',
+    $or: [
+      { category: course.category },
+      { tags: { $in: course.tags || [] } },
+      { instructor: course.instructor },
+    ],
+  })
+    .sort('-ratingsAverage -enrollmentsCount')
+    .limit(8);
+
+  res.status(200).json({ results: similar.length, data: similar });
+});
+
+// @desc    Trending — published courses by enrollments and rating
+// @route   GET /api/v1/courses/trending
+// @access  Public
+exports.trendingCourses = asyncHandler(async (req, res) => {
+  const courses = await Course.find({ status: 'published' })
+    .sort('-enrollmentsCount -ratingsAverage')
+    .limit(12);
+  res.status(200).json({ results: courses.length, data: courses });
+});
+
 // @desc    Recalculate course aggregates (sections/lectures count, total duration)
 exports.recalcCourseStats = async (courseId) => {
   const [sectionsCount, lectures] = await Promise.all([

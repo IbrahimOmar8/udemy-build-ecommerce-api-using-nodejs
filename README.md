@@ -99,6 +99,16 @@ This repository hosts the **Backend** of the platform. Two companion frontends a
 - Health check at `/api/v1/health`
 - Jest + Supertest test suite with in-memory MongoDB (`npm test`)
 
+### Udemy-style features
+
+- **30-day money-back guarantee** with progress cap. Eligibility endpoint to drive UI gating.
+- **Course announcements** broadcast by the instructor with notifications fan-out.
+- **Similar courses** ranked by category, tag, and instructor overlap.
+- **Direct messaging** between any two users with live delivery.
+- **Lecture bookmarks** (timestamped saves) and notes.
+- **"This course includes:"** sidebar panel on course details.
+- **Sale countdown banner** site-wide.
+
 ---
 
 ## Tech Stack
@@ -399,7 +409,7 @@ npm test
 
 Tests use Jest + Supertest with an in-memory MongoDB (`mongodb-memory-server`). The Express app factory in `app.js` lets tests instantiate the API without binding a port or starting workers.
 
-Coverage so far: auth flow (register, login, refresh, me, protected routes), course lifecycle (create, role guards, publish gate, enroll restrictions), and health checks. Add more tests under `tests/*.test.js`.
+Coverage: 35 tests across auth, course lifecycle, enrollment + progress, cart + coupons, quiz auto-grading, refund window, direct messaging, and health. Add more under `tests/*.test.js`.
 
 ---
 

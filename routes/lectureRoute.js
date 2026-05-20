@@ -19,6 +19,7 @@ const {
 } = require('../utils/validators/lectureValidator');
 
 const noteRoute = require('./noteRoute');
+const { lectureBookmarkRouter } = require('./bookmarkRoute');
 const { verifySectionOwnership } = require('../services/sectionService');
 const authService = require('../services/authService');
 const multer = require('multer');
@@ -26,8 +27,9 @@ const ApiError = require('../utils/apiError');
 
 const router = express.Router({ mergeParams: true });
 
-// notes nested under lectures
+// notes + bookmarks nested under lectures
 router.use('/:lectureId/notes', noteRoute);
+router.use('/:lectureId/bookmarks', lectureBookmarkRouter);
 
 // Accept either video or attachments[] in one multipart request
 const mediaUpload = multer({

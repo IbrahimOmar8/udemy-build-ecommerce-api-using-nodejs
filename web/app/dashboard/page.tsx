@@ -8,6 +8,7 @@ import { Award, BookOpen, Play } from 'lucide-react';
 import { fetchMyCertificates, fetchMyEnrollments } from '@/lib/queries';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatDuration } from '@/lib/utils';
+import RefundButton from '@/components/course/RefundButton';
 import type { Course, Enrollment } from '@/types';
 
 export default function StudentDashboardPage() {
@@ -92,6 +93,9 @@ export default function StudentDashboardPage() {
                     />
                   </div>
                   <span className="text-xs text-gray-600">{e.progressPercent}%</span>
+                </div>
+                <div className="mt-2">
+                  <RefundButton enrollmentId={e._id} />
                 </div>
               </div>
               <Play className="h-5 w-5 text-brand-600" />

@@ -21,6 +21,8 @@ const {
   verifyCourseOwnership,
   publishCourse,
   reviewDecision,
+  similarCourses,
+  trendingCourses,
 } = require('../services/courseService');
 
 const authService = require('../services/authService');
@@ -32,6 +34,8 @@ const enrollmentRoute = require('./enrollmentRoute');
 const quizRoute = require('./quizRoute');
 const assignmentRoute = require('./assignmentRoute');
 const qnaRoute = require('./qnaRoute');
+const announcementRoute = require('./announcementRoute');
+const { courseBookmarkRouter } = require('./bookmarkRoute');
 
 const router = express.Router();
 
@@ -41,7 +45,13 @@ router.use('/:courseId/reviews', reviewRoute);
 router.use('/:courseId/quizzes', quizRoute);
 router.use('/:courseId/assignments', assignmentRoute);
 router.use('/:courseId/qna', qnaRoute);
+router.use('/:courseId/announcements', announcementRoute);
+router.use('/:courseId/bookmarks', courseBookmarkRouter);
 router.use('/:courseId', enrollmentRoute);
+
+// Discovery (declared BEFORE the dynamic :idOrSlug route)
+router.get('/trending', trendingCourses);
+router.get('/:id/similar', similarCourses);
 
 router
   .route('/')

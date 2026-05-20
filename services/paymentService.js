@@ -176,3 +176,117 @@ exports.myPayments = asyncHandler(async (req, res) => {
     .populate('items.course', 'title slug thumbnail');
   res.status(200).json({ results: payments.length, data: payments });
 });
+
+// 30-day refund window (Udemy-style money-back guarantee)
+const REFUND_WINDOW_DAYS = Number(process.env.REFUND_WINDOW_DAYS || 30);
+const REFUND_PROGRESS_CAP = Number(process.env.REFUND_PROGRESS_CAP || 30);
+
+// @desc    Request a refund for one enrolled course (within 30 days, low watch time)
+// @route   POST /api/v1/payments/refund
+// @access  Private/Student
+exports.requestRefund = asyncHandler(async (req, res, next) => {
+  const { enrollmentId, reason } = req.body;
+  if (!enrollmentId) return next(new ApiError('enrollmentId is required', 400));
+
+  const enrollment = await Enrollment.findOne({
+    _id: enrollmentId,
+    student: req.user._id,
+  });
+  if (!enrollment) return next(new ApiError('Enrollment not found', 404));
+
+  // Check refund window
+  const ageDays = (Date.now() - enrollment.createdAt) / (1000 * 60 * 60 * 24);
+  if (ageDays > REFUND_WINDOW_DAYS) {
+    return next(
+      new ApiError(
+        `Refund window expired (${REFUND_WINDOW_DAYS}-day money-back guarantee)`,
+        400
+      )
+    );
+  }
+  if (enrollment.progressPercent > REFUND_PROGRESS_CAP) {
+    return next(
+      new ApiError(
+        `Refunds are only available when you've watched less than ${REFUND_PROGRESS_CAP}% of the course`,
+        400
+      )
+    );
+  }
+  if (enrollment.pricePaid <= 0) {
+    return next(new ApiError('This was a free enrollment — nothing to refund', 400));
+  }
+
+  const payment = enrollment.paymentId
+    ? await Payment.findById(enrollment.paymentId)
+    : null;
+
+  // Issue Stripe refund when applicable
+  if (payment && payment.paymentMethod === 'stripe' && stripe && payment.transactionId) {
+    try {
+      await stripe.refunds.create({
+        payment_intent: payment.transactionId,
+        amount: Math.round(enrollment.pricePaid * 100),
+      });
+    } catch (err) {
+      return next(new ApiError(`Stripe refund failed: ${err.message}`, 500));
+    }
+  }
+
+  // Update payment record
+  if (payment) {
+    payment.refundAmount = (payment.refundAmount || 0) + enrollment.pricePaid;
+    payment.refundedCourses = payment.refundedCourses || [];
+    payment.refundedCourses.push(enrollment.course);
+    payment.refundReason = reason || payment.refundReason;
+    payment.refundedAt = new Date();
+    if (payment.refundAmount >= payment.totalAmount) {
+      payment.paymentStatus = 'refunded';
+    }
+    await payment.save();
+  }
+
+  // Remove enrollment + decrement counters
+  await enrollment.deleteOne();
+  await Course.findByIdAndUpdate(enrollment.course, {
+    $inc: { enrollmentsCount: -1 },
+  });
+  await User.findByIdAndUpdate(req.user._id, { $inc: { enrolledCount: -1 } });
+
+  res.status(200).json({
+    status: 'success',
+    refundAmount: enrollment.pricePaid,
+    message: 'Refund processed. You will see the amount returned within 5-10 business days.',
+  });
+});
+
+// @desc    Check if a refund is eligible (used to enable/disable the UI button)
+// @route   GET /api/v1/payments/refund-eligibility/:enrollmentId
+// @access  Private/Student
+exports.refundEligibility = asyncHandler(async (req, res, next) => {
+  const enrollment = await Enrollment.findOne({
+    _id: req.params.enrollmentId,
+    student: req.user._id,
+  });
+  if (!enrollment) return next(new ApiError('Enrollment not found', 404));
+
+  const ageDays = (Date.now() - enrollment.createdAt) / (1000 * 60 * 60 * 24);
+  const daysLeft = Math.max(0, REFUND_WINDOW_DAYS - ageDays);
+  const eligible =
+    ageDays <= REFUND_WINDOW_DAYS &&
+    enrollment.progressPercent <= REFUND_PROGRESS_CAP &&
+    enrollment.pricePaid > 0;
+
+  res.status(200).json({
+    eligible,
+    daysLeft: Math.ceil(daysLeft),
+    progressPercent: enrollment.progressPercent,
+    pricePaid: enrollment.pricePaid,
+    reason: !eligible
+      ? enrollment.pricePaid <= 0
+        ? 'Free enrollment'
+        : ageDays > REFUND_WINDOW_DAYS
+          ? 'Refund window expired'
+          : 'Watched more than 30%'
+      : null,
+  });
+});
