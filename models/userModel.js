@@ -84,6 +84,15 @@ const userSchema = new mongoose.Schema(
         expiresAt: Date,
       },
     ],
+
+    // Push notification tokens (Expo, etc.)
+    pushTokens: [
+      {
+        token: { type: String, required: true },
+        platform: { type: String, enum: ['ios', 'android', 'web'] },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

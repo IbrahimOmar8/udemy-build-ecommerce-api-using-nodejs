@@ -21,6 +21,8 @@ const {
   updateLoggedUserPassword,
   updateLoggedUserData,
   deleteLoggedUserData,
+  registerPushToken,
+  unregisterPushToken,
 } = require('../services/userService');
 
 const authService = require('../services/authService');
@@ -33,6 +35,8 @@ router.get('/me', getLoggedUserData, getUser);
 router.put('/me/password', updateLoggedUserPassword);
 router.put('/me', uploadUserImage, resizeImage, updateLoggedUserValidator, updateLoggedUserData);
 router.delete('/me', deleteLoggedUserData);
+router.post('/me/push-token', registerPushToken);
+router.delete('/me/push-token', unregisterPushToken);
 
 // Admin only below
 router.use(authService.allowedTo('admin'));

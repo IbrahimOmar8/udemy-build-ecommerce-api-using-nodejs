@@ -14,6 +14,7 @@ import { api, extractError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import SortableList from '@/components/builder/SortableList';
 
 export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
@@ -66,6 +67,12 @@ export default function EditCoursePage() {
     onError: (e) => setMsg(extractError(e)),
   });
 
+  const reorderSectionsMut = useMutation({
+    mutationFn: (order: { id: string; order: number }[]) =>
+      api.put(`/courses/${params.id}/sections/reorder`, { order }),
+    onSuccess: refresh,
+  });
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
@@ -85,19 +92,25 @@ export default function EditCoursePage() {
         <div className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">{msg}</div>
       )}
 
-      {/* Sections */}
-      <div className="space-y-3">
-        {(course?.sections || []).map((s, idx) => (
+      {/* Sections (drag to reorder) */}
+      <SortableList
+        items={(course?.sections || []).map((s: any) => ({ ...s, id: s._id }))}
+        onReorder={(reordered) =>
+          reorderSectionsMut.mutate(
+            reordered.map((s, i) => ({ id: s._id, order: i }))
+          )
+        }
+        renderItem={(s: any) => (
           <SectionEditor
-            key={s._id}
             section={s}
-            index={idx}
+            index={(course?.sections || []).findIndex((x: any) => x._id === s._id)}
+            courseId={params.id}
             onRefresh={refresh}
             onDeleteSection={() => deleteSectionMut.mutate(s._id)}
             onDeleteLecture={(id) => deleteLectureMut.mutate(id)}
           />
-        ))}
-      </div>
+        )}
+      />
 
       {/* Add section */}
       <div className="mt-6 flex gap-2 rounded-lg border border-dashed border-gray-300 bg-white p-4">
@@ -122,6 +135,7 @@ export default function EditCoursePage() {
 interface SectionEditorProps {
   section: any;
   index: number;
+  courseId: string;
   onRefresh: () => void;
   onDeleteSection: () => void;
   onDeleteLecture: (id: string) => void;
@@ -130,12 +144,19 @@ interface SectionEditorProps {
 function SectionEditor({
   section,
   index,
+  courseId,
   onRefresh,
   onDeleteSection,
   onDeleteLecture,
 }: SectionEditorProps) {
   const [open, setOpen] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  const reorderLecturesMut = useMutation({
+    mutationFn: (order: { id: string; order: number }[]) =>
+      api.put(`/sections/${section._id}/lectures/reorder`, { order }),
+    onSuccess: onRefresh,
+  });
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
@@ -160,27 +181,32 @@ function SectionEditor({
 
       {open && (
         <div className="p-4">
-          <ul className="mb-3 space-y-2">
-            {(section.lectures || []).map((l: any) => (
-              <li
-                key={l._id}
-                className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2 text-sm"
-              >
-                <span>
-                  <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs uppercase">
-                    {l.type}
-                  </span>{' '}
-                  {l.title}
-                </span>
-                <button
-                  onClick={() => onDeleteLecture(l._id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mb-3">
+            <SortableList
+              items={(section.lectures || []).map((l: any) => ({ ...l, id: l._id }))}
+              onReorder={(reordered) =>
+                reorderLecturesMut.mutate(
+                  reordered.map((l, i) => ({ id: l._id, order: i }))
+                )
+              }
+              renderItem={(l: any) => (
+                <div className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2 text-sm">
+                  <span>
+                    <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs uppercase">
+                      {l.type}
+                    </span>{' '}
+                    {l.title}
+                  </span>
+                  <button
+                    onClick={() => onDeleteLecture(l._id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            />
+          </div>
 
           {adding ? (
             <AddLectureForm

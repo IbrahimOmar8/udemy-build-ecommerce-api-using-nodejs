@@ -423,7 +423,15 @@ The Backend in this repo is **Phase 1**. Two more deliverables are planned:
 - Auth with auto refresh-token via axios interceptor; tokens persisted in `localStorage`
 - TanStack Query, Zustand, React Hook Form
 
-### Latest additions
+### Latest additions — Monetization, recommendations, mobile push, builder polish
+
+- **Subscription plans** (Personal / Team / Business tiers): `Plan` + `Subscription` models, `GET /plans`, `POST /subscriptions/checkout` (Stripe), `/subscriptions/cancel`, `/subscriptions/enroll` to enroll in any covered course without paying. New `/plans` page on the web with monthly/yearly toggle.
+- **Course bundles**: pick N courses, sell them at a bundle price. `Bundle` model, full CRUD, plus `POST /bundles/cart` that expands the bundle into per-course cart items.
+- **Drag-and-drop reordering** in the instructor course builder (sections + lectures) via `@dnd-kit/sortable`. Persists order via the existing reorder endpoints.
+- **Public instructor profile** at `/instructors/[id]` — headline, bio, expertise, social links, stats, all published courses, "Message instructor" composer.
+- **Mobile push notifications**: Expo `expo-notifications` integration. Mobile registers the device token on login, the API stores it on the user (`pushTokens[]`), and `createNotification` fires `exp.host/--/api/v2/push/send` alongside the existing Socket.io event. No SDK dependency.
+
+### Earlier additions
 
 - **Docker compose** for one-command local stack (API + MongoDB + Redis)
 - **Database seeder** (`npm run seed`) with admin, instructors, students, categories, sample courses + sections + lectures + reviews + coupons

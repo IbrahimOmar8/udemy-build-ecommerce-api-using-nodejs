@@ -1,10 +1,13 @@
 const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const Notification = require('../models/notificationModel');
+const User = require('../models/userModel');
 const { emitToUser } = require('../config/socket');
+const { sendPushMessages } = require('../utils/expoPush');
 
 // @desc    Helper to create notifications (used internally)
-// Also pushes a real-time event via Socket.io when configured.
+// Persists, broadcasts via Socket.io, and sends a mobile push if the
+// recipient has registered push tokens.
 exports.createNotification = async ({ recipient, type, title, body, data }) => {
   const notification = await Notification.create({
     recipient,
@@ -14,6 +17,23 @@ exports.createNotification = async ({ recipient, type, title, body, data }) => {
     data,
   });
   emitToUser(recipient.toString(), 'notification:new', notification);
+
+  // Mobile push (fire-and-forget)
+  User.findById(recipient)
+    .select('pushTokens')
+    .then((user) => {
+      if (!user?.pushTokens?.length) return null;
+      const tokens = user.pushTokens.map((t) => t.token);
+      return sendPushMessages(tokens, {
+        title,
+        body,
+        data: { type, ...(data || {}) },
+      });
+    })
+    .catch((err) => {
+      console.error('[notify] push failed:', err.message);
+    });
+
   return notification;
 };
 

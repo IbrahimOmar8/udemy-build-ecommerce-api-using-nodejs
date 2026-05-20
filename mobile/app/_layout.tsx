@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '@/store/useAuthStore';
+import { registerForPushNotifications } from '@/lib/push';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -19,6 +20,14 @@ export default function RootLayout() {
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
+
+  useEffect(() => {
+    if (user) {
+      registerForPushNotifications().catch(() => {
+        /* user denied or device not supported */
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!hydrated) return;
