@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import SortableList from '@/components/builder/SortableList';
+import AiAssistant from '@/components/builder/AiAssistant';
 
 export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
@@ -90,6 +91,42 @@ export default function EditCoursePage() {
 
       {msg && (
         <div className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">{msg}</div>
+      )}
+
+      {course && (
+        <div className="mb-6">
+          <AiAssistant
+            title={course.title}
+            description={course.description}
+            level={course.level}
+            onOutline={async (data) => {
+              for (let i = 0; i < (data.sections || []).length; i++) {
+                const s = data.sections[i];
+                try {
+                  const created = await api.post(
+                    `/courses/${params.id}/sections`,
+                    { title: s.title, description: s.description, order: i }
+                  );
+                  for (const l of s.lectures || []) {
+                    const form = new FormData();
+                    form.append('title', l.title);
+                    form.append('type', 'video');
+                    form.append('durationSeconds', String((l.estimatedMinutes || 0) * 60));
+                    await api.post(
+                      `/sections/${created.data.data._id}/lectures`,
+                      form,
+                      { headers: { 'Content-Type': 'multipart/form-data' } }
+                    );
+                  }
+                } catch (e) {
+                  /* continue */
+                }
+              }
+              refresh();
+              setMsg('Curriculum draft added — review and edit each section.');
+            }}
+          />
+        </div>
       )}
 
       {/* Sections (drag to reorder) */}

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import AiAssistant from '@/components/builder/AiAssistant';
 import { extractError } from '@/lib/api';
 
 interface FormValues {
@@ -38,10 +39,16 @@ export default function NewCoursePage() {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     defaultValues: { level: 'all', language: 'en', price: 0, isFree: false },
   });
+
+  const watchedTitle = watch('title') || '';
+  const watchedLevel = watch('level') || 'all';
+  const watchedDescription = watch('description') || '';
 
   const mut = useMutation({
     mutationFn: (form: FormValues) => createCourse(form as unknown as Record<string, unknown>),
@@ -66,6 +73,15 @@ export default function NewCoursePage() {
           error={errors.title?.message}
         />
         <Input label="Subtitle (optional)" {...register('subtitle')} />
+
+        <AiAssistant
+          title={watchedTitle}
+          level={watchedLevel}
+          brief={watch('subtitle')}
+          description={watchedDescription}
+          onDescription={(t) => setValue('description', t, { shouldDirty: true })}
+        />
+
         <Textarea
           label="Description"
           rows={5}

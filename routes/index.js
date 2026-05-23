@@ -26,6 +26,8 @@ const certificateRoute = require('./certificateRoute');
 const notificationRoute = require('./notificationRoute');
 const bundleRoute = require('./bundleRoute');
 const { planRouter, subscriptionRouter } = require('./subscriptionRoute');
+const aiRoute = require('./aiRoute');
+const streakRoute = require('./streakRoute');
 
 const mountRoutes = (app) => {
   app.use('/api/v1/auth', authRoute);
@@ -58,6 +60,9 @@ const mountRoutes = (app) => {
   app.use('/api/v1/bundles', bundleRoute);
   app.use('/api/v1/plans', planRouter);
   app.use('/api/v1/subscriptions', subscriptionRouter);
+
+  app.use('/api/v1/ai', aiRoute);
+  app.use('/api/v1/streak', streakRoute);
 };
 
 module.exports = mountRoutes;

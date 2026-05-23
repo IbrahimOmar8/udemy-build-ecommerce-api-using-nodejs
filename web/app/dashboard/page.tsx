@@ -9,6 +9,7 @@ import { fetchMyCertificates, fetchMyEnrollments } from '@/lib/queries';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatDuration } from '@/lib/utils';
 import RefundButton from '@/components/course/RefundButton';
+import StreakCard from '@/components/course/StreakCard';
 import type { Course, Enrollment } from '@/types';
 
 export default function StudentDashboardPage() {
@@ -37,6 +38,10 @@ export default function StudentDashboardPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-1 text-3xl font-bold">Welcome back, {user.name.split(' ')[0]}</h1>
       <p className="mb-8 text-sm text-gray-600">Pick up where you left off.</p>
+
+      <div className="mb-6">
+        <StreakCard />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-10">
         <StatCard

@@ -423,7 +423,20 @@ The Backend in this repo is **Phase 1**. Two more deliverables are planned:
 - Auth with auto refresh-token via axios interceptor; tokens persisted in `localStorage`
 - TanStack Query, Zustand, React Hook Form
 
-### Latest additions — Monetization, recommendations, mobile push, builder polish
+### Latest additions — AI assistant, HLS, bookmarks UI, learning streak
+
+- **AI course assistant** powered by Claude (`@anthropic-ai/sdk`). Endpoints:
+  - `POST /ai/course/description` — drafts a 120-180 word marketing description
+  - `POST /ai/course/outcomes` — generates 5-8 concrete learning outcomes
+  - `POST /ai/course/requirements` — generates 3-5 prerequisites
+  - `POST /ai/course/outline` — proposes a full section + lecture outline
+  - `POST /ai/course/announcement` — drafts an announcement
+  - Uses `claude-opus-4-7` with adaptive thinking + structured outputs. Falls back to 503 when `ANTHROPIC_API_KEY` is unset. Wired into the course-create form and the course-builder page (one-click "Suggest section outline" provisions sections + lectures end-to-end).
+- **Learning streak**: `Streak` model + `/streak/me` and `/streak/ping` endpoints; auto-updated on `markLectureCompleted`. Surfaced as a `StreakCard` on the student dashboard with current/longest streak, minutes today, and total active days.
+- **HLS adaptive streaming** in the web video player. Detects `.m3u8` sources and lazy-loads `hls.js`; falls back to native HLS on Safari. No backend change required — set `lecture.videoUrl` to your HLS manifest.
+- **Bookmarks UI** on the Learn page: save timestamped bookmarks per lecture, click to jump back to that point. Uses the existing bookmark endpoints from the previous phase.
+
+### Earlier additions — Monetization, recommendations, mobile push, builder polish
 
 - **Subscription plans** (Personal / Team / Business tiers): `Plan` + `Subscription` models, `GET /plans`, `POST /subscriptions/checkout` (Stripe), `/subscriptions/cancel`, `/subscriptions/enroll` to enroll in any covered course without paying. New `/plans` page on the web with monthly/yearly toggle.
 - **Course bundles**: pick N courses, sell them at a bundle price. `Bundle` model, full CRUD, plus `POST /bundles/cart` that expands the bundle into per-course cart items.

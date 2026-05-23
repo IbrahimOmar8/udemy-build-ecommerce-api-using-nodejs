@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { formatDuration } from '@/lib/utils';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import BookmarksPanel from '@/components/course/BookmarksPanel';
 import type { Lecture } from '@/types';
 
 export default function LearnPage() {
@@ -20,6 +21,7 @@ export default function LearnPage() {
 
   const [currentLectureId, setCurrentLectureId] = useState<string | null>(null);
   const [lecture, setLecture] = useState<Lecture | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     if (!user && useAuthStore.getState().hydrated) {
@@ -87,6 +89,7 @@ export default function LearnPage() {
           {lecture?.type === 'video' && (
             <VideoPlayer
               src={lecture.videoUrl}
+              onProgress={(t) => setCurrentTime(t)}
               onEnded={() => markMut.mutate(lecture._id)}
             />
           )}
@@ -137,6 +140,27 @@ export default function LearnPage() {
                   </ul>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Bookmarks */}
+          {lecture && (
+            <div className="mt-4">
+              <BookmarksPanel
+                courseId={params.courseId}
+                lectureId={lecture._id}
+                currentTime={currentTime}
+                onJump={(lectureId, t) => {
+                  setCurrentLectureId(lectureId);
+                  setTimeout(() => {
+                    const v = document.querySelector('video') as HTMLVideoElement | null;
+                    if (v) {
+                      v.currentTime = t;
+                      v.play().catch(() => {});
+                    }
+                  }, 300);
+                }}
+              />
             </div>
           )}
         </div>

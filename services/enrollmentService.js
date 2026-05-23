@@ -5,6 +5,7 @@ const Enrollment = require('../models/enrollmentModel');
 const Course = require('../models/courseModel');
 const Lecture = require('../models/lectureModel');
 const User = require('../models/userModel');
+const Streak = require('../models/streakModel');
 
 // @desc    Enroll in a free course directly (paid courses go through paymentService)
 // @route   POST /api/v1/courses/:courseId/enroll
@@ -88,8 +89,46 @@ exports.markLectureCompleted = asyncHandler(async (req, res, next) => {
   }
 
   await enrollment.save();
+  await updateStreak(req.user._id, lecture.durationSeconds || 0);
   res.status(200).json({ data: enrollment });
 });
+
+const updateStreak = async (userId, durationSeconds) => {
+  const minutes = Math.max(1, Math.round((durationSeconds || 60) / 60));
+  const now = new Date();
+  const sameDay = (a, b) =>
+    a && b &&
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate();
+  const isYesterday = (last) => {
+    if (!last) return false;
+    const oneDay = 86400_000;
+    const u = (d) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    return Math.floor((u(now) - u(last)) / oneDay) === 1;
+  };
+  let s = await Streak.findOne({ user: userId });
+  if (!s) {
+    s = new Streak({ user: userId, currentStreak: 1, longestStreak: 1, totalDaysActive: 1, minutesToday: minutes, minutesAllTime: minutes, lastActivityDate: now });
+  } else if (sameDay(s.lastActivityDate, now)) {
+    s.minutesToday += minutes;
+    s.minutesAllTime += minutes;
+  } else if (isYesterday(s.lastActivityDate)) {
+    s.currentStreak += 1;
+    s.totalDaysActive += 1;
+    s.minutesToday = minutes;
+    s.minutesAllTime += minutes;
+    s.lastActivityDate = now;
+  } else {
+    s.currentStreak = 1;
+    s.totalDaysActive += 1;
+    s.minutesToday = minutes;
+    s.minutesAllTime += minutes;
+    s.lastActivityDate = now;
+  }
+  s.longestStreak = Math.max(s.longestStreak, s.currentStreak);
+  await s.save();
+};
 
 // @desc    Get course progress for current student
 // @route   GET /api/v1/courses/:courseId/progress
